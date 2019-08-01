@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+# https://stackoverflow.com/questions/32311768/bash-wait-until-cpu-usage-gets-below-a-threshold
+
+# A simple script that waits until the average CPU load drops below
+# the specified threshold, then exits successfully.  The threshold is
+# compared to the CPU load as reported by `uptime`.
+
+threshold=$1
+while true
+do
+    # get current 1-minute averaged CPU load
+    usage=$(uptime | grep -o "load.*" | sed 's/\,/ /g' | awk '{print $3}')
+    
+    # compare to threshold and exit if CPU load is less...
+    result=$(bc -l <<< "$usage <= $threshold")
+    [ $result == "1" ] && break
+
+    # ...otherwise wait before checking again
+    sleep $(echo ${RANDOM}%45+15 | bc)
+done
+
+exit 0
