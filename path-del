@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# removes entries in $PATH variable that match given string
+
+echo $PATH | tr ':' '\n' | sed "/$1/d" | tr '\n' ':' | sed 's/:$/\n/'
