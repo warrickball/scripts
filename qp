@@ -1,0 +1,139 @@
+#!/usr/bin/env python3
+
+import numpy as np
+import matplotlib.pyplot as pl
+from argparse import ArgumentParser
+from astropy.io import fits
+from astropy.timeseries import LombScargle as LS
+
+parser = ArgumentParser(description=
+"""Quick Plot (qp) makes simple plots of several standard data file
+types, including plain text (ASCII), NumPy binaries and FITS files.""")
+parser.add_argument('-x', type=str, nargs='+',
+                    help="index for x-axis")
+parser.add_argument('-y', type=str, nargs='+',
+                    help="index for y-axis")
+parser.add_argument('filenames', type=str, nargs='+')
+parser.add_argument('-F', '--format', type=str, nargs='+', default=['infer'],
+                    choices=['infer', 'ascii', 'npy', 'fits', 'mesa', 'gyre'])
+parser.add_argument('--xlabel', type=str, nargs='+', default=[''],
+                    help="x-axis label, can contain spaces")
+parser.add_argument('--ylabel', type=str, nargs='+', default=[''],
+                    help="y-axis label, can contain spaces")
+parser.add_argument('--title', type=str, nargs='+', default=[''],
+                    help="plot title, can contain spaces")
+parser.add_argument('--scale-x', type=float, default=1.0,
+                    help="multiply x data by this much (default=1.0)")
+parser.add_argument('--scale-y', type=float, default=1.0,
+                    help="multiply y data by this much (default=1.0)")
+parser.add_argument('--invert-x', action='store_true',
+                    help="invert x variable (after scaling)")
+parser.add_argument('--invert-f', action='store_true',
+                    help="invert frequency variable (after scaling x and computing periodogram)")
+parser.add_argument('--no-show', action='store_true',
+                    help="don't show the plot")
+parser.add_argument('--legend', type=str, nargs='+',
+                    help="add a legend with given keys or 'auto', in which "
+                    "case use filenames")
+parser.add_argument('-o', '--output', type=str,
+                    help="save plot to file with given filename")
+parser.add_argument('-s', '--style', type=str, nargs='+', default=['-'],
+                    help="plot style, as passed to `matplotlib.pyplot.plot`")
+parser.add_argument('--PS', action='store_true',
+                    help="plot power spectrum (scales applied before transform)")
+parser.add_argument('--AS', action='store_true',
+                    help="plot amplitude spectrum (scales applied before transform)")
+parser.add_argument('--os', type=int, default=1,
+                    help="oversampling for power spectrum")
+parser.add_argument('-a', '--axis', type=float, nargs=4, default=None,
+                    help="axis parameters, as passed to matplotlib.pyplot.axis")
+parser.add_argument('--fold', type=float, default=-1,
+                    help="if positive, fold x-axis with this number")
+parser.add_argument('--nyquist-factor', type=float, default=1.0,
+                    help="nyquist factor for amplitude/power spectrum (default=1.0)")
+args = parser.parse_args()
+
+infer_format = {'.txt': 'ascii',
+                '.txt.gz': 'ascii',
+                '.dat': 'ascii',
+                '.npy': 'npy',
+                '.fits': 'fits',
+                '.fits.gz': 'fits'}
+
+def expand_arg(a):
+    return (a*len(args.filenames))[:len(args.filenames)]
+
+fmts = expand_arg(args.format)
+styles = expand_arg(args.style)
+xkeys = expand_arg(args.x)
+ykeys = expand_arg(args.y)
+
+for i in range(len(fmts)):
+    if fmts[i] == 'infer':
+        for k, v in infer_format.items():
+            if args.filenames[i].lower().endswith(k):
+                fmts[i] = v
+                break
+        else:
+            raise ValueError("couldn't infer format of %s" % filename)
+        
+
+for (fmt, style, xkey, ykey, filename) in zip(
+        fmts, styles, xkeys, ykeys, args.filenames):
+
+    if fmt == 'ascii':
+        x, y = np.loadtxt(filename, usecols=(int(xkey), int(ykey)), unpack=True)
+    elif fmt == 'fits':
+        f = fits.getdata(filename, 1)
+        x = f[xkey]
+        y = f[ykey]
+    elif fmt == 'npy':
+        f = np.load(filename)
+        x = f[xkey]
+        y = f[ykey]
+
+    x *= args.scale_x
+    y *= args.scale_y
+
+    if args.invert_x:
+        x = 1./x
+
+    if args.fold > 0:
+        x = (x-x[np.nanargmin(y)] + 0.5*args.fold)%args.fold
+
+    if args.PS or args.AS:
+        I = np.isfinite(x*y)
+        f, p = LS(x[I], y[I]).autopower(# method_kwds={'trig_sum_kwds': {'Mfft': 16}},
+                                        normalization='psd',
+                                        nyquist_factor=args.nyquist_factor,
+                                        samples_per_peak=args.os)
+        p = p*np.var(y[I])/np.trapz(p, x=f)*args.os
+
+        if args.invert_f:
+            f = 1./f
+            
+        if args.PS:
+            pl.plot(f, p, style, label=filename.split('/')[-1])
+        else:
+            pl.plot(f, np.sqrt(p*4/len(x)), style, label=filename.split('/')[-1])
+    else:
+        pl.plot(x, y, style, label=filename.split('/')[-1])
+
+if args.axis:
+    pl.axis(args.axis)
+    
+pl.xlabel(' '.join(args.xlabel))
+pl.ylabel(' '.join(args.ylabel))
+pl.title(' '.join(args.title))
+
+if args.legend:
+    if args.legend[0] == 'auto':
+        pl.legend()
+    else:
+        pl.legend(args.legend)
+        
+if not args.no_show:
+    pl.show()
+    
+if args.output:
+    pl.savefig(args.output)
