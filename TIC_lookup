@@ -1,0 +1,107 @@
+#!/usr/bin/env python3
+
+import numpy as np
+from astroquery.simbad import Simbad
+from argparse import ArgumentParser
+
+parser = ArgumentParser(description=
+"""Look up a star in the Asteroseismic Target List (ATL).  The first
+argument is the first part of the identifier and specifies where the
+script will look for a cross-match with the ATL.  Current options are
+(case-insensitive): 'TIC', 'HIP', 'HD', 'HR', 'radec' or 'name'.  The
+option 'radec' must be followed by the RA and DEC in decimal form.""")
+parser.add_argument('cat', type=str)
+parser.add_argument('id', type=str, nargs='+')
+args = parser.parse_args()
+
+# TODO: restore TIC lookup
+
+def line():
+    print('—'*32)
+
+ATL = np.load('/home/wball/data/ATL_180529.npy')
+Simbad.add_votable_fields('flux(V)', 'sptype', 'ids')
+
+if args.cat.lower() == 'radec':
+    ra, dec = map(float, args.id)
+    i = np.nanargmin((ATL['ra']-ra)**2+(ATL['dec']-dec)**2)
+    TIC = ATL[i]['TICID']
+    HIP = int(ATL[i]['HIP'])
+    TYC = ATL[i]['TYC2_id']
+    name = 'TYC %s' % TYC
+    if TYC == '':
+        name = 'HIP %i' % HIP
+elif args.cat.lower() == 'tic':
+    TIC = int(args.id[0])
+    HIP = int(ATL['HIP'][ATL['TICID']==TIC][0])
+    TYC = ATL[ATL['TICID']==TIC]['TYC2_id'][0]
+    name = 'TYC %s' % TYC
+    if TYC == '':
+        name = 'HIP %i' % HIP
+elif args.cat.lower() == 'hip':
+    HIP = int(args.id[0])
+    TIC = ATL['TICID'][ATL['HIP']==HIP][0]
+    TYC = ATL[ATL['HIP']==HIP]['TYC2_id'][0]
+    name = 'HIP %i' % HIP
+elif args.cat.lower() == 'hd':
+    HD = int(args.id[0])
+    name = 'HD %i' % HD
+elif args.cat.lower() == 'hr':
+    HR = int(args.id[0])
+    name = 'HR %i' % HR
+elif args.cat.lower() == 'name':
+    name = ' '.join(args.id)
+else:
+    raise ValueError()
+
+# if hr or hd, use SIMBAD to get HIP
+Q = Simbad.query_object(name)
+IDs = Q['IDS'].data.data[0].decode().split('|')
+try:
+    TYC = [ID for ID in IDs if ID.startswith('TYC')][0].split()[-1]
+except IndexError:
+    # couldn't match TYC
+    TYC = ''
+
+try:
+    HIP = int([ID for ID in IDs if ID.startswith('HIP')][0].split()[-1])
+except IndexError:
+    HIP = -1
+
+IDs = [IDs[0]] + [ID for ID in IDs if ID.startswith(('*', 'NAME', 'HD', 'HR', 'HIP', 'TYC'))]
+
+line()
+print('ATL')
+line()
+
+try:
+    row = ATL[ATL['TYC2_id']==TYC][0]
+    for k in ['HIP', 'Tmag', 'Vmag', 'TICID', 'TYC2_id', 'ra', 'dec', 'numax', 'teff', 'rad']:
+        print('%12s' % k, end='    ')
+        print(row[k])
+except IndexError:
+    try:
+        row = ATL[ATL['HIP']==HIP][0]
+        for k in ['HIP', 'Tmag', 'Vmag', 'TICID', 'TYC2_id', 'ra', 'dec', 'numax', 'teff', 'rad']:
+            print('%12s' % k, end='    ')
+            print(row[k])
+    except IndexError:
+        print("Couldn't cross match ATL...")
+
+# line()
+# print('TIC')
+# line()
+
+line()
+print('SIMBAD')
+line()
+print('%12s    %s' % ('SP_TYPE', Q['SP_TYPE'].data.data[0].decode()))
+for i, ID in enumerate(IDs):
+    if i == 0:
+        print('%12s' % 'IDs', end='    ')
+    else:
+        print(' '*16, end='')
+        
+    print(ID)
+
+line()
