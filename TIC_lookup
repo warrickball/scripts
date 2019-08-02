@@ -20,28 +20,29 @@ def line():
     print('—'*32)
 
 ATL = np.load('/home/wball/data/ATL_180529.npy')
+TIC = np.load('/home/wball/data/TIC8/Vmax10.npy')
 Simbad.add_votable_fields('flux(V)', 'sptype', 'ids')
 
 if args.cat.lower() == 'radec':
     ra, dec = map(float, args.id)
-    i = np.nanargmin((ATL['ra']-ra)**2+(ATL['dec']-dec)**2)
-    TIC = ATL[i]['TICID']
-    HIP = int(ATL[i]['HIP'])
-    TYC = ATL[i]['TYC2_id']
+    i = np.nanargmin((TIC['ra']-ra)**2+(TIC['dec']-dec)**2)
+    TICID = TIC[i]['ID']
+    HIP = int(TIC[i]['HIP'])
+    TYC = TIC[i]['TYC']
     name = 'TYC %s' % TYC
     if TYC == '':
         name = 'HIP %i' % HIP
 elif args.cat.lower() == 'tic':
-    TIC = int(args.id[0])
-    HIP = int(ATL['HIP'][ATL['TICID']==TIC][0])
-    TYC = ATL[ATL['TICID']==TIC]['TYC2_id'][0]
+    TICID = int(args.id[0])
+    HIP = int(TIC['HIP'][TIC['ID']==TICID][0])
+    TYC = TIC[TIC['ID']==TICID]['TYC'][0]
     name = 'TYC %s' % TYC
     if TYC == '':
         name = 'HIP %i' % HIP
 elif args.cat.lower() == 'hip':
     HIP = int(args.id[0])
-    TIC = ATL['TICID'][ATL['HIP']==HIP][0]
-    TYC = ATL[ATL['HIP']==HIP]['TYC2_id'][0]
+    TICID = TIC['ID'][TIC['HIP']==HIP][0]
+    TYC = TIC[TIC['HIP']==HIP]['TYC'][0]
     name = 'HIP %i' % HIP
 elif args.cat.lower() == 'hd':
     HD = int(args.id[0])
@@ -74,23 +75,40 @@ line()
 print('ATL')
 line()
 
+ATL_keys = ['HIP', 'Tmag', 'Vmag', 'TICID', 'TYC2_id', 'ra', 'dec', 'numax', 'teff', 'rad']
 try:
     row = ATL[ATL['TYC2_id']==TYC][0]
-    for k in ['HIP', 'Tmag', 'Vmag', 'TICID', 'TYC2_id', 'ra', 'dec', 'numax', 'teff', 'rad']:
+    for k in ATL_keys:
         print('%12s' % k, end='    ')
         print(row[k])
 except IndexError:
     try:
         row = ATL[ATL['HIP']==HIP][0]
-        for k in ['HIP', 'Tmag', 'Vmag', 'TICID', 'TYC2_id', 'ra', 'dec', 'numax', 'teff', 'rad']:
+        for k in ATL_keys:
             print('%12s' % k, end='    ')
             print(row[k])
     except IndexError:
         print("Couldn't cross match ATL...")
 
-# line()
-# print('TIC')
-# line()
+line()
+print('TIC')
+line()
+
+TIC_keys = ['ID', 'TYC', 'ra', 'dec', 'Teff', 'mass', 'lum']
+try:
+    row = TIC[TIC['TYC']==TYC][0]
+    for k in TIC_keys:
+        print('%12s' % k, end='    ')
+        print(row[k])
+except IndexError:
+    try:
+        row = TIC[TIC['HIP']==HIP][0]
+        for k in TIC_keys:
+            print('%12s' % k, end='    ')
+            print(row[k])
+    except IndexError:
+        print("Couldn't cross match ATL...")
+    
 
 line()
 print('SIMBAD')
