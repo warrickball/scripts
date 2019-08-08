@@ -47,8 +47,10 @@ parser.add_argument('--os', type=int, default=1,
                     help="oversampling for power spectrum")
 parser.add_argument('-a', '--axis', type=float, nargs=4, default=None,
                     help="axis parameters, as passed to matplotlib.pyplot.axis")
-parser.add_argument('--fold', type=float, default=-1,
-                    help="if positive, fold x-axis with this number")
+parser.add_argument('--fold', type=float, default=0,
+                    help="if positive, fold x-axis with this number; "
+                    "if negative, fold on peak of periodogram multiplied by modulo "
+                    "of this parameter (e.g. -2 means fold on twice peak period)")
 parser.add_argument('--nyquist-factor', type=float, default=1.0,
                     help="nyquist factor for amplitude/power spectrum (default=1.0)")
 args = parser.parse_args()
@@ -76,7 +78,7 @@ for i in range(len(fmts)):
                 break
         else:
             raise ValueError("couldn't infer format of %s" % filename)
-        
+
 
 for (fmt, style, xkey, ykey, filename) in zip(
         fmts, styles, xkeys, ykeys, args.filenames):
@@ -100,6 +102,16 @@ for (fmt, style, xkey, ykey, filename) in zip(
 
     if args.fold > 0:
         x = (x-x[np.nanargmin(y)] + 0.5*args.fold)%args.fold
+    elif args.fold < 0:
+        I = np.isfinite(x*y)
+        f, p = LS(x[I], y[I]).autopower(# method_kwds={'trig_sum_kwds': {'Mfft': 16}},
+                                        normalization='psd',
+                                        nyquist_factor=args.nyquist_factor,
+                                        samples_per_peak=args.os)
+        P = -args.fold/f[np.argmax(p)]
+        x = (x-x[np.nanargmin(y)] + 0.5*P)%P
+
+
 
     if args.PS or args.AS:
         I = np.isfinite(x*y)
@@ -111,7 +123,7 @@ for (fmt, style, xkey, ykey, filename) in zip(
 
         if args.invert_f:
             f = 1./f
-            
+
         if args.PS:
             pl.plot(f, p, style, label=filename.split('/')[-1])
         else:
@@ -121,7 +133,7 @@ for (fmt, style, xkey, ykey, filename) in zip(
 
 if args.axis:
     pl.axis(args.axis)
-    
+
 pl.xlabel(' '.join(args.xlabel))
 pl.ylabel(' '.join(args.ylabel))
 pl.title(' '.join(args.title))
@@ -131,9 +143,9 @@ if args.legend:
         pl.legend()
     else:
         pl.legend(args.legend)
-        
+
 if not args.no_show:
     pl.show()
-    
+
 if args.output:
     pl.savefig(args.output)
