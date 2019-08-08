@@ -9,10 +9,10 @@ from astropy.timeseries import LombScargle as LS
 parser = ArgumentParser(description=
 """Quick Plot (qp) makes simple plots of several standard data file
 types, including plain text (ASCII), NumPy binaries and FITS files.""")
-parser.add_argument('-x', type=str, nargs='+',
-                    help="index for x-axis")
-parser.add_argument('-y', type=str, nargs='+',
-                    help="index for y-axis")
+parser.add_argument('-x', type=str, nargs='+', default=['0'],
+                    help="index for x-axis (default=['0'])")
+parser.add_argument('-y', type=str, nargs='+', default=['1'],
+                    help="index for y-axis (default=['1'])")
 parser.add_argument('filenames', type=str, nargs='+')
 parser.add_argument('-F', '--format', type=str, nargs='+', default=['infer'],
                     choices=['infer', 'ascii', 'npy', 'fits', 'mesa', 'gyre'])
