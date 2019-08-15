@@ -1,0 +1,45 @@
+#!/usr/bin/env python3
+
+import numpy as np
+from astropy.io import fits
+from argparse import ArgumentParser
+from os import sys
+
+parser = ArgumentParser()
+parser.add_argument('fits', type=str,
+                    help="FITS filename")
+parser.add_argument('-e', '--extension', type=str, default=1,
+                    help="specify the extension by name or number "
+                    "(default=1)")
+parser.add_argument('-k', '--keys', type=str, nargs='+', default=[],
+                    help="specify the keywords to include "
+                    "(default=use all)")
+parser.add_argument('--delimiter', type=str, default=' ',
+                    help="specify a delimiter to pass to numpy.savetxt "
+                    "(default=' ')")
+parser.add_argument('--header', action='store_true',
+                    help="include a line with column names")
+parser.add_argument('--head', type=int, default=-1,
+                    help="print this many rows from start") 
+parser.add_argument('--tail', type=int, default=-1,
+                    help="print this many rows from end") 
+args = parser.parse_args()
+
+try:
+    extension = int(args.extension)
+except TypeError:
+    extension = args.extension
+    
+data = fits.getdata(args.fits, args.extension)
+keys = args.keys if args.keys else data.dtype.names
+data = np.vstack([data[k] for k in keys]).T
+
+if args.head > 0:
+    data = data[:args.head]
+elif args.tail > 0:
+    data = data[-args.tail:]
+
+if args.header:
+    print(args.delimiter.join(keys))
+    
+np.savetxt(sys.stdout, data, delimiter=args.delimiter)
