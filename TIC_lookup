@@ -14,8 +14,6 @@ parser.add_argument('cat', type=str)
 parser.add_argument('id', type=str, nargs='+')
 args = parser.parse_args()
 
-# TODO: restore TIC lookup
-
 def line():
     print('—'*32)
 
@@ -75,7 +73,8 @@ line()
 print('ATL')
 line()
 
-ATL_keys = ['HIP', 'Tmag', 'Vmag', 'TICID', 'TYC2_id', 'ra', 'dec', 'numax', 'teff', 'rad']
+ATL_keys = ['TICID', 'HIP', 'TYC2_id', 'Tmag', 'Vmag', 'ra', 'dec',
+            'ELon', 'ELat', 'numax', 'teff', 'rad', 'P_mix']
 try:
     row = ATL[ATL['TYC2_id']==TYC][0]
     for k in ATL_keys:
