@@ -16,6 +16,12 @@ parser.add_argument('-y', type=str, nargs='+', default=['1'],
 parser.add_argument('filenames', type=str, nargs='+')
 parser.add_argument('-F', '--format', type=str, nargs='+', default=['infer'],
                     choices=['infer', 'ascii', 'npy', 'fits', 'mesa', 'gyre'])
+parser.add_argument('--delimiter', type=str, default=None,
+                    help="delimiter for ASCII files, as passed "
+                    "to `numpy.loadtxt` (default=None)")
+parser.add_argument('--skiprows', type=int, default=0,
+                    help="number of initial rows to skip in ASCII files, "
+                    "as passed to `numpy.loadtxt` (default=0)")
 parser.add_argument('--xlabel', type=str, nargs='+', default=[''],
                     help="x-axis label, can contain spaces")
 parser.add_argument('--ylabel', type=str, nargs='+', default=[''],
@@ -84,7 +90,9 @@ for (fmt, style, xkey, ykey, filename) in zip(
         fmts, styles, xkeys, ykeys, args.filenames):
 
     if fmt == 'ascii':
-        x, y = np.loadtxt(filename, usecols=(int(xkey), int(ykey)), unpack=True)
+        x, y = np.loadtxt(filename, usecols=(int(xkey), int(ykey)),
+                          unpack=True, delimiter=args.delimiter,
+                          skiprows=args.skiprows)
     elif fmt == 'fits':
         f = fits.getdata(filename, 1)
         x = f[xkey]
