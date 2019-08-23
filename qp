@@ -9,11 +9,14 @@ from astropy.timeseries import LombScargle as LS
 parser = ArgumentParser(description=
 """Quick Plot (qp) makes simple plots of several standard data file
 types, including plain text (ASCII), NumPy binaries and FITS files.""")
+parser.add_argument('filenames', type=str, nargs='+')
 parser.add_argument('-x', type=str, nargs='+', default=['0'],
                     help="index for x-axis (default=['0'])")
 parser.add_argument('-y', type=str, nargs='+', default=['1'],
                     help="index for y-axis (default=['1'])")
-parser.add_argument('filenames', type=str, nargs='+')
+parser.add_argument('--alpha', type=float, default=1.0,
+                    help="alpha for transparency: 0.0=transparent, 1.0=opaque "
+                    "(default=1.0)")
 parser.add_argument('-F', '--format', type=str, nargs='+', default=['infer'],
                     choices=['infer', 'ascii', 'npy', 'fits', 'mesa', 'gyre'])
 parser.add_argument('--delimiter', type=str, default=None,
@@ -133,11 +136,11 @@ for (fmt, style, xkey, ykey, filename) in zip(
             f = 1./f
 
         if args.PS:
-            pl.plot(f, p, style, label=filename.split('/')[-1])
+            pl.plot(f, p, style, label=filename.split('/')[-1], alpha=args.alpha)
         else:
-            pl.plot(f, np.sqrt(p*4/len(x)), style, label=filename.split('/')[-1])
+            pl.plot(f, np.sqrt(p*4/len(x)), style, label=filename.split('/')[-1], alpha=args.alpha)
     else:
-        pl.plot(x, y, style, label=filename.split('/')[-1])
+        pl.plot(x, y, style, label=filename.split('/')[-1], alpha=args.alpha)
 
 if args.axis:
     pl.axis(args.axis)
