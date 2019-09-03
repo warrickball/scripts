@@ -1,0 +1,95 @@
+#!/usr/bin/env python3
+
+from astroquery.mast import Catalogs
+from astroquery.simbad import Simbad
+from astropy.io import ascii
+from argparse import ArgumentParser
+
+def header(s):
+    print('—'*40)
+    print(s)
+    print('—'*40)
+
+Simbad.add_votable_fields('sptype', 'ids')
+
+parser = ArgumentParser()
+parser.add_argument('ids', type=str, nargs='+',
+                    help="identifiers to look up")
+parser.add_argument('--radius', type=float, default=0.5/60.,
+                    help="search radius, in degrees (default=0.5/60)")
+parser.add_argument('--ATL-file', type=str, default=None,
+                    help="read ATL from this file (default=download each time)")
+args = parser.parse_args()
+
+ATL_URL = 'https://iopscience.iop.org/0067-0049/241/1/12/suppdata/apjsab04f5t1_mrt.txt'
+
+if args.ATL_file is None:
+    ATL = ascii.read(ATL_URL, format='cds').as_array().data
+else:
+    try:
+        ATL = ascii.read(args.ATL_file, format='cds').as_array().data
+    except:
+        from urllib.request import urlopen
+        with urlopen(ATL_URL) as response, open(args.ATL_file, 'wb') as f:
+            f.write(response.read())
+
+        ATL = ascii.read(args.ATL_file, format='cds').as_array().data
+        
+    
+for i in args.ids:
+    # TIC
+    header('TIC')
+    tic = Catalogs.query_object(i, catalog='TIC', radius=args.radius).as_array()[0].data
+
+    for k in ['ID', 'HIP', 'GAIA', 'KIC', 'TYC']:
+        print('%12s %s' % (k, tic[k]))
+
+    for k in ['ra', 'dec', 'eclong', 'eclat']:
+        print('%12s = %.3f' % (k, tic[k]))
+
+    for k in ['Vmag', 'Tmag', 'GAIAmag', 'gaiabp', 'gaiarp', 'plx',
+              'Teff', 'rad', 'lum', 'mass']:
+        print('%12s = %.3f ± %.3f' % (k, tic[k], tic['e_'+k]))
+
+    # SIMBAD
+    header('SIMBAD')
+    q = Simbad.query_object('TYC ' + str(tic['TYC']))
+    print('%12s = %s' % ('SP_TYPE', q[0]['SP_TYPE'].decode()))
+    print('%12s = ' % 'Names', end='')
+    for name in q['IDS'].data.data[0].decode().split('|'):
+        for start in ['* ', 'HD ', 'HR ']:
+            if name.startswith(start):
+                print('%s' % name, end='\n               ')
+    else:
+        print('\r', end='')
+
+    # ATL
+    header('ATL')
+    row = ATL[ATL['TIC']==tic['ID']][0]
+    for k in ['TIC', 'HIP']:
+        print('%12s %s' % (k, row[k]))
+        
+    for k in ['numax', 'Teff', 'R', 'L', 'P-mix']:
+        print('%12s = %s' % (k, row[k]))
+    
+
+    # print everything
+    # names = list(tic.dtype.names)
+
+    # for k in names:
+    #     try:
+    #         float(tic[k])
+    #     except:
+    #         print('%12s = %s' % (k, tic[k]))
+    #         continue
+
+    #     if 'e_' + k in names or k.startswith('eneg_') or k.startswith('epos_'):
+    #         continue
+            
+    #     if k.startswith('e_'):
+    #         try:
+    #             print('%12s = %.3f ± %.3f' % (k[2:], tic[k[2:]], tic[k]))
+    #         except ValueError:
+    #             print('%12s = %.3f' % (k, tic[k]))
+    #     else:
+    #         print('%12s = %.3f' % (k, tic[k]))
