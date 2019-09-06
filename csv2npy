@@ -6,6 +6,9 @@ from argparse import ArgumentParser
 parser = ArgumentParser("""Convert a CSV file to a NumPy binary.""")
 parser.add_argument('csv', type=str, help="filename of input CSV file")
 parser.add_argument('npy', type=str, help="filename of output NumPy binary file")
+parser.add_argument('-d', '--delimiter', type=str, default=',',
+                    help="column delimiter in CSV file (default=',')")
 args = parser.parse_args()
 
-np.save(args.npy, np.genfromtxt(args.csv, delimiter=',', names=True))
+np.save(args.npy, np.genfromtxt(args.csv, delimiter=args.delimiter,
+                                names=True, dtype=None, encoding='utf-8'))
