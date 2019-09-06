@@ -65,7 +65,12 @@ for i in args.ids:
 
     # ATL
     header('ATL')
-    row = ATL[ATL['TIC']==tic['ID']][0]
+    try:
+        row = ATL[ATL['TIC']==tic['ID']][0]
+    except IndexError:
+        print('Not found in ATL.')
+        continue
+
     for k in ['TIC', 'HIP']:
         print('%12s %s' % (k, row[k]))
         
