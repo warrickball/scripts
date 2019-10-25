@@ -69,6 +69,9 @@ parser.add_argument('--fold', type=float, default=0,
 parser.add_argument('--sinc', action='store_true',
                     help="improve period estimate for folding by fitting a sinc "
                     "function to power spectrum")
+parser.add_argument('--phase', type=float, default=0.5,
+                    help="default phase at which to place lightcurve minimum "
+                    "(default=0.5)")
 parser.add_argument('--nyquist-factor', type=float, default=1.0,
                     help="nyquist factor for amplitude/power spectrum (default=1.0)")
 args = parser.parse_args()
@@ -115,15 +118,34 @@ for (fmt, style, xkey, ykey, filename) in zip(
         if args.transpose:
             f = f.T
 
-        x = f[xkey]
-        y = f[ykey]
+        try:
+            x = f[xkey]
+        except IndexError:
+            # maybe we need to use an int instead
+            x = f[int(xkey)]
+
+        try:
+            y = f[ykey]
+        except IndexError:
+            # maybe we need to use an int instead
+            y = f[int(ykey)]
+
     elif fmt == 'npy':
         f = np.load(filename)
         if args.transpose:
             f = f.T
-            
-        x = f[xkey]
-        y = f[ykey]
+
+        try:
+            x = f[xkey]
+        except IndexError:
+            # maybe we need to use an int instead
+            x = f[int(xkey)]
+
+        try:
+            y = f[ykey]
+        except IndexError:
+            # maybe we need to use an int instead
+            y = f[int(ykey)]
 
     x *= args.scale_x
     y *= args.scale_y
@@ -132,7 +154,7 @@ for (fmt, style, xkey, ykey, filename) in zip(
         x = 1./x
 
     if args.fold > 0:
-        x = (x-x[np.nanargmin(y)] + 0.5*args.fold)%args.fold
+        x = (x-x[np.nanargmin(y)] + args.phase*args.fold)%args.fold
     elif args.fold < 0:
         I = np.isfinite(x*y)
         f, p = LS(x[I], y[I]).autopower(# method_kwds={'trig_sum_kwds': {'Mfft': 16}},
@@ -150,7 +172,7 @@ for (fmt, style, xkey, ykey, filename) in zip(
                 print('WARNING: failed to improve fold period by fitting sinc!')
 
         P = -args.fold/x0
-        x = (x-x[np.nanargmin(y)] + 0.5*P)%P
+        x = (x-x[np.nanargmin(y)] + args.phase*P)%P
 
 
 
