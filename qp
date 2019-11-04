@@ -69,6 +69,9 @@ parser.add_argument('--fold', type=float, default=0,
 parser.add_argument('--sinc', action='store_true',
                     help="improve period estimate for folding by fitting a sinc "
                     "function to power spectrum")
+parser.add_argument('--stack', type=float, default=0,
+                    help="phase fold on period specified by 'fold' but "
+                    "displace each segment by this much")
 parser.add_argument('--phase', type=float, default=0.5,
                     help="default phase at which to place lightcurve minimum "
                     "(default=0.5)")
@@ -154,6 +157,7 @@ for (fmt, style, xkey, ykey, filename) in zip(
         x = 1./x
 
     if args.fold > 0:
+        y = y + args.stack*np.floor((x-x[np.nanargmin(y)] + args.phase*args.fold)/args.fold)
         x = (x-x[np.nanargmin(y)] + args.phase*args.fold)%args.fold
     elif args.fold < 0:
         I = np.isfinite(x*y)
@@ -172,9 +176,10 @@ for (fmt, style, xkey, ykey, filename) in zip(
                 print('WARNING: failed to improve fold period by fitting sinc!')
 
         P = -args.fold/x0
+        y = y + args.stack*np.floor((x-x[np.nanargmin(y)] + args.phase*args.fold)/args.fold)
         x = (x-x[np.nanargmin(y)] + args.phase*P)%P
-
-
+    else:
+        pass
 
     if args.PS or args.AS:
         I = np.isfinite(x*y)
