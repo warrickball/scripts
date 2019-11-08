@@ -48,6 +48,8 @@ elif args.cat.lower() == 'hd':
 elif args.cat.lower() == 'hr':
     HR = int(args.id[0])
     name = 'HR %i' % HR
+elif args.cat.lower() == 'tyc':
+    name = 'TYC %s' % args.id[0]
 elif args.cat.lower() == 'name':
     name = ' '.join(args.id)
 else:
