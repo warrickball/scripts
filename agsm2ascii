@@ -10,7 +10,6 @@ parser.add_argument('agsm', type=str,
                     help="ADIPLS grand summary (AGSM) from which to read data")
 args = parser.parse_args()
 
-css = adipls.load_agsm(args.agsm)
-freq = np.sqrt(css['sigma2_c']/css['sigma2'])*1e5/6/css['Pi_E']
-np.savetxt(sys.stdout, np.vstack([css['ell'], css['enn'], freq, css['E']]).T,
+css = adipls.load_agsm(args.agsm, return_object=True)
+np.savetxt(sys.stdout, np.vstack([css.l, css.n, css.nu*1e6, css.E]).T,
            fmt='%4i%4i%16.7f%16.7e')
