@@ -1,0 +1,62 @@
+#!/usr/bin/env python3
+
+from math import e
+from uncertainties import ufloat
+from argparse import ArgumentParser
+
+parser = ArgumentParser("""Implementation of the scaling relations presented by Bellinger et
+al., MNRAS 486, 4612 (2019) [1].  Essentially the same as the code
+presented in Appendix A but for a few changes of variable names and
+the addition of the command line arguments.
+
+[1] https://arxiv.org/abs/1903.03110""")
+parser.add_argument('--numax', type=float, nargs=2,
+                    help="frequency of maximum oscillation power "
+                    "(ν_max) in uHz")
+parser.add_argument('--Dnu', type=float, nargs=2,
+                    help="large separation (Δν) in uHz")
+parser.add_argument('--dnu', type=float, nargs=2,
+                    help="small separation (δν) in uHz")
+parser.add_argument('--Teff', type=float, nargs=2,
+                    help="effective temperature (Teff) in K")
+parser.add_argument('--FeH', type=float, nargs=2,
+                    help="metallicity ([Fe/H]) in dex")
+args = parser.parse_args()
+
+# Enter some data, for example a solar twin
+# ufloat holds a measurement and its uncertainty
+numax = ufloat(*args.numax)
+Dnu = ufloat(*args.Dnu)
+dnu = ufloat(*args.dnu)
+Teff = ufloat(*args.Teff)
+FeH = ufloat(*args.FeH)
+
+# Take the powers from Table 1, here given with more precision
+# P = [ alpha, beta, gamma, delta, epsilon]
+P_age = [-6.55598425, 9.05883854, -1.29229053, -4.24528340, -0.42594767]
+P_mass = [ 0.97531880, -1.43472745, 0, 1.21647950, 0.27014278]
+P_radius = [ 0.30490057, -1.12949647, 0, 0.31236570, 0.10024562]
+P_R_seis = [ 0.88364851, -1.85899352, 0, 0, 0 ]
+
+# Apply the scaling relation
+def scaling(numax, Dnu, dnu, Teff, exp_FeH, P=P_age,
+            numax_Sun = ufloat(3090, 30), # muHz
+            Dnu_Sun = ufloat(135.1, 0.1), # muHz
+            dnu_Sun = ufloat(8.957, 0.059), # muHz
+            Teff_Sun = ufloat(5772, 0.8), # K
+            FeH_Sun = ufloat(0, 0)): # dex
+    alpha, beta, gamma, delta, epsilon = P
+    # Equation 5
+    return ((numax / numax_Sun) ** alpha *
+            (Dnu / Dnu_Sun) ** beta *
+            (dnu / dnu_Sun) ** gamma *
+            (Teff / Teff_Sun) ** delta *
+            (e**FeH / e**FeH_Sun) ** epsilon)
+
+scaling_mass = scaling(numax, Dnu, dnu, Teff, FeH, P=P_mass)
+scaling_radius = scaling(numax, Dnu, dnu, Teff, FeH, P=P_radius)
+scaling_age = scaling(numax, Dnu, dnu, Teff, FeH, P=P_age)*ufloat(4.569, 0.006)
+
+print('Mass:', scaling_mass, '[solar units]')
+print('Radius:', scaling_radius, '[solar units]')
+print('Age:', '{:.2u}'.format(scaling_age), '[Gyr]')
