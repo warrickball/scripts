@@ -27,6 +27,8 @@ parser.add_argument('basename', type=str,
                     help="base filename for AADG3 inputs")
 parser.add_argument('--cadence', type=float, default=120.0,
                     help="cadence, in s (default=120.0)")
+parser.add_argument('--n-cadences', type=int, default=19728)
+parser.add_argument('--n-relax', type=int, default=720*6)
 parser.add_argument('-v', type=float, default=0.0,
                     help="radial velocity, in km/s (default=0.0)")
 # parser.add_argument('-v', '--verbose', action='store_true')
@@ -35,7 +37,7 @@ parser.add_argument('--splitting', type=float, default=-1,
                     "in which case rotation is taken from summary "
                     "if available, otherwise rotation = 0 (default -1)")
 parser.add_argument('--inclination', type=float, default=-1,
-                    help="inclination, ignored if < 0, "
+                    help="inclination in degrees, ignored if < 0, "
                     "in which case a random inclination is generated "
                     "(default -1)")
 parser.add_argument('--min-H', type=float, default=-1,
@@ -76,8 +78,9 @@ namelist = OrderedDict()
 namelist['user_seed'] = np.random.randint(100, 2**28-1)
 namelist['cadence'] = 120.0
 vis = np.array([1.0, 1.505, 0.62, 0.075])  # medians from Lund et al. (2017)
-namelist['n_relax'] = 6*720
+namelist['n_relax'] = args.n_relax
 namelist['n_fine'] = 50
+namelist['n_cadences'] = args.n_cadences
 namelist['sig'] = sig
 namelist['rho'] = 0.45
 namelist['tau'] = 250.0/(numax/3090.)
