@@ -2,7 +2,6 @@
 
 import numpy as np
 import AADG3
-from tomso import gyre
 from collections import OrderedDict
 from argparse import ArgumentParser
 
@@ -43,8 +42,13 @@ parser.add_argument('--min-H', type=float, default=-1,
                     help="minimum for height H (default=-1, i.e. keep all modes)")
 args = parser.parse_args()
 
-header, summary = gyre.load_summary(args.gyre_filename)
+with open(args.gyre_filename, 'r') as f:
+    lines = f.readlines()
 
+header = np.genfromtxt(lines[2:4], names=True, dtype=None,
+                       encoding='utf-8')
+summary = np.genfromtxt(lines[5:], names=True, dtype=None,
+                        encoding='utf-8')
 
 Lsun = 3.8418e33
 Rsun = 6.9598e10
